@@ -1,0 +1,53 @@
+{
+  "uid": "laboratorio-logs",
+  "title": "Monitoria de logs - Pedidos",
+  "description": "Eventos simulados do log-generator. Contagens de eventos, sem representar disponibilidade real ou pedidos persistidos.",
+  "schemaVersion": 39,
+  "version": 1,
+  "tags": ["loki", "laboratorio"],
+  "timezone": "browser",
+  "refresh": "10s",
+  "time": {"from": "now-15m", "to": "now"},
+  "panels": [
+    {
+      "id": 1,
+      "title": "Eventos no periodo",
+      "type": "stat",
+      "gridPos": {"h": 5, "w": 12, "x": 0, "y": 0},
+      "datasource": {"type": "loki", "uid": "loki"},
+      "targets": [{"refId": "A", "editorMode": "code", "queryType": "instant", "expr": "sum(count_over_time({service_name=\"log-generator\"}[$__range])) or vector(0)"}],
+      "fieldConfig": {"defaults": {"unit": "short", "decimals": 0}, "overrides": []},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"], "values": false}, "colorMode": "value", "graphMode": "none"}
+    },
+    {
+      "id": 2,
+      "title": "Erros simulados no periodo",
+      "type": "stat",
+      "gridPos": {"h": 5, "w": 12, "x": 12, "y": 0},
+      "datasource": {"type": "loki", "uid": "loki"},
+      "targets": [{"refId": "A", "editorMode": "code", "queryType": "instant", "expr": "sum(count_over_time({service_name=\"log-generator\"} | json level=\"level\" | level=\"ERROR\" | __error__=\"\" [$__range])) or vector(0)"}],
+      "fieldConfig": {"defaults": {"unit": "short", "decimals": 0, "color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "red", "value": 1}]}}, "overrides": []},
+      "options": {"reduceOptions": {"calcs": ["lastNotNull"], "values": false}, "colorMode": "value", "graphMode": "none"}
+    },
+    {
+      "id": 3,
+      "title": "Eventos por nivel / minuto (janela de 1 min)",
+      "description": "Contagem em janela movel de um minuto. Os erros sao gerados intencionalmente pelo script.",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 5},
+      "datasource": {"type": "loki", "uid": "loki"},
+      "targets": [{"refId": "A", "editorMode": "code", "queryType": "range", "legendFormat": "{{level}}", "expr": "sum by (level) (count_over_time({service_name=\"log-generator\"} | json level=\"level\" | __error__=\"\" [1m]))"}],
+      "fieldConfig": {"defaults": {"unit": "short", "min": 0, "decimals": 0}, "overrides": []},
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "multi"}}
+    },
+    {
+      "id": 4,
+      "title": "Logs recentes",
+      "type": "logs",
+      "gridPos": {"h": 12, "w": 24, "x": 0, "y": 13},
+      "datasource": {"type": "loki", "uid": "loki"},
+      "targets": [{"refId": "A", "editorMode": "code", "queryType": "range", "expr": "{service_name=\"log-generator\"} | json", "maxLines": 100}],
+      "options": {"showTime": true, "showLabels": false, "wrapLogMessage": true, "sortOrder": "Descending", "enableLogDetails": true, "prettifyLogMessage": true}
+    }
+  ]
+}

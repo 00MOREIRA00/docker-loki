@@ -1,0 +1,61 @@
+name: laboratorio-loki
+
+services:
+  loki:
+    image: grafana/loki:3.7.9
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./loki-config.yaml:/etc/loki/local-config.yaml:ro
+      - loki-data:/loki
+
+  alloy:
+    image: grafana/alloy:v1.21.3
+    restart: unless-stopped
+    user: "0"
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    ports:
+      - "127.0.0.1:12345:12345"
+    volumes:
+      - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy-data:/var/lib/alloy/data
+    depends_on:
+      - loki
+
+  log-generator:
+    image: python:3.13-alpine
+    restart: unless-stopped
+    command: ["python", "-u", "/app/generate_logs.py"]
+    stop_grace_period: 30s
+    volumes:
+      - ./scripts/generate_logs.py:/app/generate_logs.py:ro
+      - ./scripts/generator-config.json:/app/generator-config.json:ro
+    depends_on:
+      - alloy
+
+  grafana:
+    image: grafana/grafana:13.3.0
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:?Defina GRAFANA_ADMIN_USER no arquivo .env local}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?Defina GRAFANA_ADMIN_PASSWORD no arquivo .env local}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - loki
+
+volumes:
+  loki-data:
+  alloy-data:
+  grafana-data:

@@ -1,0 +1,17 @@
+﻿{
+  "environment": "production",
+  "count": 0,
+  "concurrency": 10,
+  "burst": 100,
+  "interval": 5,
+  "max_attempts": 3,
+  "latency_min_ms": 10,
+  "latency_max_ms": 80,
+  "scenarios": {
+    "success": 60,
+    "payment_recovery": 15,
+    "payment_failure": 10,
+    "confirmation_failure": 8,
+    "subscription_failure": 7
+  }
+}

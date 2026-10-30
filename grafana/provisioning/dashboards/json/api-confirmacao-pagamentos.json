@@ -1,0 +1,442 @@
+{
+  "uid": "api-confirmacao-pagamentos",
+  "title": "Pagamentos - api-confirmacao-pagamentos",
+  "description": "Eventos simulados. Contadores medem etapas e linhas; ausencia de eventos nao comprova disponibilidade. Filtro request_id aceita regex.",
+  "schemaVersion": 39,
+  "version": 1,
+  "tags": [
+    "loki",
+    "pagamentos",
+    "api-confirmacao-pagamentos"
+  ],
+  "timezone": "browser",
+  "refresh": "10s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "links": [
+    {
+      "title": "api-pagamentos",
+      "type": "link",
+      "url": "/d/api-pagamentos",
+      "keepTime": true,
+      "includeVars": true
+    },
+    {
+      "title": "api-assinaturas",
+      "type": "link",
+      "url": "/d/api-assinaturas",
+      "keepTime": true,
+      "includeVars": true
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "environment",
+        "label": "Ambiente",
+        "type": "custom",
+        "query": "production,homologation",
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": false,
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "options": []
+      },
+      {
+        "name": "request_id",
+        "label": "request_id (regex)",
+        "type": "textbox",
+        "query": ".*",
+        "current": {
+          "text": ".*",
+          "value": ".*"
+        },
+        "options": []
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Eventos no periodo",
+      "type": "stat",
+      "description": "Quantidade de linhas de log; nao representa operacoes unicas.",
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "sum(count_over_time({service_name=\"log-generator\"} | json service=\"service\", environment=\"environment\", request_id=\"request_id\", level=\"level\", event=\"event\", status=\"status\", error_type=\"error_type\", duration_ms=\"duration_ms\" | __error__=\"\" | service=\"api-confirmacao-pagamentos\" | environment=~\"${environment:raw}\" | request_id=~\"${request_id:raw}\" | drop request_id, duration_ms [$__range])) or vector(0)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 2,
+      "title": "Etapas concluidas com sucesso",
+      "type": "stat",
+      "description": "Conclusoes desta etapa, sem contar retries ou encerramentos do fluxo.",
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "sum(count_over_time({service_name=\"log-generator\"} | json service=\"service\", environment=\"environment\", request_id=\"request_id\", level=\"level\", event=\"event\", status=\"status\", error_type=\"error_type\", duration_ms=\"duration_ms\" | __error__=\"\" | service=\"api-confirmacao-pagamentos\" | environment=~\"${environment:raw}\" | request_id=~\"${request_id:raw}\" | drop request_id, duration_ms | event=\"confirmation.finished\" | status=\"success\" [$__range])) or vector(0)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 3,
+      "title": "Etapas encerradas com falha",
+      "type": "stat",
+      "description": "Falhas definitivas desta etapa. Falha posterior em outro servico nao altera esta contagem.",
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "sum(count_over_time({service_name=\"log-generator\"} | json service=\"service\", environment=\"environment\", request_id=\"request_id\", level=\"level\", event=\"event\", status=\"status\", error_type=\"error_type\", duration_ms=\"duration_ms\" | __error__=\"\" | service=\"api-confirmacao-pagamentos\" | environment=~\"${environment:raw}\" | request_id=~\"${request_id:raw}\" | drop request_id, duration_ms | event=\"confirmation.finished\" | status=\"error\" [$__range])) or vector(0)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 4,
+      "title": "Linhas ERROR",
+      "type": "stat",
+      "description": "Inclui erros recuperaveis e mensagens de encerramento; um incidente pode gerar varias linhas.",
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 4
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "sum(count_over_time({service_name=\"log-generator\"} | json service=\"service\", environment=\"environment\", request_id=\"request_id\", level=\"level\", event=\"event\", status=\"status\", error_type=\"error_type\", duration_ms=\"duration_ms\" | __error__=\"\" | service=\"api-confirmacao-pagamentos\" | environment=~\"${environment:raw}\" | request_id=~\"${request_id:raw}\" | drop request_id, duration_ms | level=\"ERROR\" [$__range])) or vector(0)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none"
+      }
+    },
+    {
+      "id": 5,
+      "title": "Eventos por nivel / minuto",
+      "type": "timeseries",
+      "description": "",
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "queryType": "range",
+          "expr": "sum by (level) (count_over_time({service_name=\"log-generator\"} | json service=\"service\", environment=\"environment\", request_id=\"request_id\", level=\"level\", event=\"event\", status=\"status\", error_type=\"error_type\", duration_ms=\"duration_ms\" | __error__=\"\" | service=\"api-confirmacao-pagamentos\" | environment=~\"${environment:raw}\" | request_id=~\"${request_id:raw}\" | drop request_id, duration_ms [1m]))",
+          "legendFormat": "{{level}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Conclusoes da etapa por status / minuto",
+      "type": "timeseries",
+      "description": "",
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "queryType": "range",
+          "expr": "sum by (status) (count_over_time({service_name=\"log-generator\"} | json service=\"service\", environment=\"environment\", request_id=\"request_id\", level=\"level\", event=\"event\", status=\"status\", error_type=\"error_type\", duration_ms=\"duration_ms\" | __error__=\"\" | service=\"api-confirmacao-pagamentos\" | environment=~\"${environment:raw}\" | request_id=~\"${request_id:raw}\" | drop request_id, duration_ms | event=\"confirmation.finished\" [1m]))",
+          "legendFormat": "{{status}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Duracao media da etapa / minuto",
+      "type": "timeseries",
+      "description": "Duracao simulada medida no gerador; inclui tentativas e esperas na etapa de pagamento. Sem dados permanece vazio.",
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "queryType": "range",
+          "expr": "avg by (status) (avg_over_time({service_name=\"log-generator\"} | json service=\"service\", environment=\"environment\", request_id=\"request_id\", level=\"level\", event=\"event\", status=\"status\", error_type=\"error_type\", duration_ms=\"duration_ms\" | __error__=\"\" | service=\"api-confirmacao-pagamentos\" | environment=~\"${environment:raw}\" | request_id=~\"${request_id:raw}\" | event=\"confirmation.finished\" | unwrap duration_ms | __error__=\"\" [1m]))",
+          "legendFormat": "{{status}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "min": 0,
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "title": "Falhas por tipo / minuto",
+      "type": "timeseries",
+      "description": "",
+      "gridPos": {
+        "x": 12,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "queryType": "range",
+          "expr": "sum by (error_type) (count_over_time({service_name=\"log-generator\"} | json service=\"service\", environment=\"environment\", request_id=\"request_id\", level=\"level\", event=\"event\", status=\"status\", error_type=\"error_type\", duration_ms=\"duration_ms\" | __error__=\"\" | service=\"api-confirmacao-pagamentos\" | environment=~\"${environment:raw}\" | request_id=~\"${request_id:raw}\" | drop request_id, duration_ms | event=\"confirmation.finished\" | status=\"error\" [1m]))",
+          "legendFormat": "{{error_type}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 9,
+      "title": "Logs do servico - correlacao por request_id",
+      "type": "logs",
+      "description": "Filtro request_id aceita expressao regular; .* mostra todas as operacoes.",
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 24,
+        "h": 12
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "editorMode": "code",
+          "queryType": "range",
+          "expr": "{service_name=\"log-generator\"} | json | __error__=\"\" | service=\"api-confirmacao-pagamentos\" | environment=~\"${environment:raw}\" | request_id=~\"${request_id:raw}\"",
+          "maxLines": 500
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "wrapLogMessage": true,
+        "sortOrder": "Descending",
+        "enableLogDetails": true,
+        "prettifyLogMessage": true
+      }
+    }
+  ]
+}

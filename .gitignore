@@ -1,0 +1,24 @@
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+.aws/
+
+# Python environments and generated files
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Generated logs and editor files
+*.log
+*.jsonl
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
